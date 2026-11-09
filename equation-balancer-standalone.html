@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Equation Balancer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EDF2F5;--card:#fff;--ink:#12263A;--mute:#5B6B7A;--line:#D3DCE3;--grid:rgba(18,38,58,.06);--acc:#0B7A75;--acc-ink:#fff;--hi:#FFE08A;--hi-ink:#4a3600;--err:#B3261E;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0D1822;--card:#152635;--ink:#E6EEF4;--mute:#92A4B3;--line:#2A4052;--grid:rgba(230,238,244,.05);--acc:#3FC1B8;--acc-ink:#06211F;--hi:#5B4A12;--hi-ink:#FFE9A6;--err:#FF8A80}}
+:root[data-theme="dark"]{--bg:#0D1822;--card:#152635;--ink:#E6EEF4;--mute:#92A4B3;--line:#2A4052;--grid:rgba(230,238,244,.05);--acc:#3FC1B8;--acc-ink:#06211F;--hi:#5B4A12;--hi-ink:#FFE9A6;--err:#FF8A80}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background-color:var(--bg);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px;color:var(--ink);font:16px/1.5 "Bricolage Grotesque",system-ui,sans-serif}
+main{max-width:640px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:clamp(2rem,9vw,2.9rem);line-height:1.02;margin:8px 0;font-weight:800;letter-spacing:-.025em}
+.sub{color:var(--mute);margin:0 0 20px}
+.mute{color:var(--mute);font-size:.92rem;margin:8px 0 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+button{font:inherit;font-weight:600;min-height:46px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.pri{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+.row .pri{flex:1}
+textarea{width:100%;min-height:88px;font:1.2rem/1.45 "Source Serif 4",Georgia,serif;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);resize:vertical;margin:12px 0}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:12px 0 4px}
+.chip{min-height:38px;font:500 1rem "Source Serif 4",Georgia,serif;white-space:nowrap;padding:0 12px}
+.prev{max-height:110px;max-width:100%;border-radius:8px;border:1px solid var(--line);margin-top:12px}
+.eq{font:1.55rem/2.2 "Source Serif 4",Georgia,serif;display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px}
+.co{background:var(--hi);color:var(--hi-ink);border-radius:6px;padding:0 8px;margin-right:4px;font-weight:600}
+.op{color:var(--mute)}
+.err{color:var(--err);margin:0}
+h2{font-size:1rem;margin:18px 0 6px;font-weight:600}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--mute);font-weight:400;font-size:.9rem}
+td:first-child{font-family:"Source Serif 4",Georgia,serif}
+.calc .row{gap:8px}
+input[type=number],select{font:inherit;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:0 10px}
+input[type=number]{width:7.5rem}
+</style>
+</head>
+<body>
+<main>
+  <h1>Equation Balancer</h1>
+  <p class="sub">Scan a photo or type an equation. You get the balanced version, an atom check and mole-to-gram conversions.</p>
+
+  <div class="card">
+    <div id="scanBox" hidden>
+      <div class="row">
+        <button class="pri" id="camBtn" type="button">Scan with camera</button>
+        <button id="upBtn" type="button">Upload photo</button>
+      </div>
+      <input id="camIn" type="file" accept="image/*" capture="environment" hidden>
+      <input id="upIn" type="file" accept="image/*" hidden>
+      <img id="prev" class="prev" alt="Scanned equation" hidden>
+      <p id="status" class="mute" role="status" aria-live="polite"></p>
+    </div>
+    <textarea id="ta" rows="3" spellcheck="false" aria-label="Chemical equation" placeholder="H2 + O2 -> H2O"></textarea>
+    <div class="row"><button class="pri" id="go" type="button">Balance</button></div>
+    <div class="chips" id="chips"></div>
+    <p class="mute" id="note" hidden>Camera scan works when this page is opened in Claude. You can still type or paste equations here.</p>
+    <p class="mute">One equation per line. Use -> or → between reactants and products.</p>
+  </div>
+
+  <div id="out"></div>
+</main>
+
+<script>
+const AM={H:1.008,He:4.0026,Li:6.94,Be:9.0122,B:10.81,C:12.011,N:14.007,O:15.999,F:18.998,Ne:20.18,Na:22.99,Mg:24.305,Al:26.982,Si:28.085,P:30.974,S:32.06,Cl:35.45,Ar:39.948,K:39.098,Ca:40.078,Ti:47.867,Cr:51.996,Mn:54.938,Fe:55.845,Co:58.933,Ni:58.693,Cu:63.546,Zn:65.38,Br:79.904,Ag:107.87,Sn:118.71,I:126.9,Ba:137.33,Au:196.97,Hg:200.59,Pb:207.2};
+const EXAMPLES=["H2 + O2 -> H2O","C3H8 + O2 -> CO2 + H2O","Fe + O2 -> Fe2O3","Al + HCl -> AlCl3 + H2","Ca(OH)2 + H3PO4 -> Ca3(PO4)2 + H2O","KMnO4 + HCl -> KCl + MnCl2 + H2O + Cl2"];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pretty=f=>esc(f).replace(/(\d+)/g,"<sub>$1</sub>");
+const gcd=(a,b)=>b?gcd(b,a%b):Math.abs(a);
+const lcm=(a,b)=>Math.abs(a*b)/gcd(a,b);
+const fmt=v=>isFinite(v)?String(Number(v.toPrecision(4))):"—";
+
+function parseF(s){
+  const st=[{}];let i=0;
+  const add=(o,k,v)=>{o[k]=(o[k]||0)+v};
+  const num=()=>{const m=s.slice(i).match(/^\d+/);if(m){i+=m[0].length;return +m[0]}return 1};
+  while(i<s.length){
+    const c=s[i];
+    if(c==="("||c==="["){st.push({});i++}
+    else if(c===")"||c==="]"){
+      if(st.length<2)throw new Error("Brackets don’t match in “"+s+"”.");
+      i++;const n=num(),t=st.pop();
+      for(const k in t)add(st[st.length-1],k,t[k]*n);
+    }else{
+      const m=s.slice(i).match(/^[A-Z][a-z]?/);
+      if(!m)throw new Error("Couldn’t read “"+s+"”. Check capital letters and numbers.");
+      i+=m[0].length;add(st[st.length-1],m[0],num());
+    }
+  }
+  if(st.length!==1)throw new Error("Brackets don’t match in “"+s+"”.");
+  return st[0];
+}
+
+function balance(line){
+  line=line.replace(/[₀-₉]/g,c=>String.fromCharCode(c.charCodeAt(0)-8320)).replace(/\((s|l|g|aq)\)/gi,"").trim();
+  const parts=line.split(/\s*(?:<?[-=]+>|→|⟶|⇌|⇄|=)\s*/);
+  if(parts.length!==2)throw new Error("Put one arrow (-> or →) between reactants and products.");
+  const side=t=>t.split(/\s*\+\s*/).map(x=>x.replace(/^\d+\s*/,"").replace(/\s/g,"")).filter(Boolean);
+  const L=side(parts[0]),R=side(parts[1]);
+  if(!L.length||!R.length)throw new Error("Both sides need at least one substance.");
+  const names=[...L,...R],sp=names.map(parseF),n=sp.length;
+  const els=[...new Set(sp.flatMap(o=>Object.keys(o)))];
+  for(const e of els){
+    const a=L.some((_,i)=>sp[i][e]),b=R.some((_,i)=>sp[L.length+i][e]);
+    if(!(a&&b))throw new Error("“"+e+"” appears on only one side, so this can’t be balanced. Check the formulas.");
+  }
+  const A=els.map(e=>sp.map((o,j)=>(o[e]||0)*(j<L.length?1:-1)));
+  const piv=[];let r=0;
+  for(let c=0;c<n&&r<A.length;c++){
+    const p=A.findIndex((row,i)=>i>=r&&row[c]!==0);
+    if(p<0)continue;
+    [A[r],A[p]]=[A[p],A[r]];
+    for(let i=0;i<A.length;i++){
+      if(i!==r&&A[i][c]){
+        const f=A[i][c],g=A[r][c];
+        A[i]=A[i].map((v,k)=>v*g-A[r][k]*f);
+        const d=A[i].reduce((a,v)=>gcd(a,v),0)||1;
+        A[i]=A[i].map(v=>v/d);
+      }
+    }
+    piv.push(c);r++;
+  }
+  const free=[...Array(n).keys()].filter(c=>!piv.includes(c));
+  if(!free.length)throw new Error("No set of coefficients balances this. Check the formulas.");
+  if(free.length>1)throw new Error("This has more than one valid balance. It may be several reactions combined. Try splitting it.");
+  const f=free[0],fr=piv.map((c,k)=>{let nu=-A[k][f],de=A[k][c];if(de<0){nu=-nu;de=-de}return[nu,de]});
+  const Lc=fr.reduce((a,[,d])=>lcm(a,d),1),x=Array(n);
+  x[f]=Lc;piv.forEach((c,k)=>{x[c]=fr[k][0]*Lc/fr[k][1]});
+  const g=x.reduce((a,v)=>gcd(a,v),0)||1;
+  let co=x.map(v=>v/g);
+  if(co.every(v=>v<=0))co=co.map(v=>-v);
+  if(co.some(v=>v<=0))throw new Error("No all-positive solution exists. A product or reactant may be wrong.");
+  const M=sp.map(o=>{let t=0;for(const e in o){if(!AM[e])return null;t+=AM[e]*o[e]}return t});
+  return{L,R,names,sp,els,co,M};
+}
+
+function render(r){
+  const side=(a,off)=>a.map((f,i)=>{const c=r.co[off+i];return`<span>${c>1?`<span class="co">${c}</span>`:""}${pretty(f)}</span>`}).join('<span class="op">+</span>');
+  const nl=r.L.length;
+  const atoms=r.els.map(e=>{
+    const t=(from,to)=>{let s=0;for(let j=from;j<to;j++)s+=r.co[j]*(r.sp[j][e]||0);return s};
+    return`<tr><td>${e}</td><td>${t(0,nl)}</td><td>${t(nl,r.names.length)}</td></tr>`}).join("");
+  const opts=r.names.map((f,j)=>`<option value="${j}">${esc(f)}</option>`).join("");
+  return`<div class="eq">${side(r.L,0)}<span class="op">→</span>${side(r.R,nl)}</div>
+  <h2>Atom check</h2>
+  <div class="tw"><table><thead><tr><th>Atom</th><th>Reactants</th><th>Products</th></tr></thead><tbody>${atoms}</tbody></table></div>
+  <h2>Mole and mass conversion</h2>
+  <div class="calc"><div class="row"><span>I have</span><input class="v" type="number" step="any" min="0" value="1" aria-label="Amount"><select class="u" aria-label="Unit"><option value="mol">mol</option><option value="g">g</option></select><span>of</span><select class="s" aria-label="Substance">${opts}</select></div>
+  <div class="tw"><table><thead><tr><th>Substance</th><th>Moles</th><th>Grams</th></tr></thead><tbody class="tb"></tbody></table></div></div>`;
+}
+
+function wireCalc(box,r){
+  const v=box.querySelector(".v"),u=box.querySelector(".u"),s=box.querySelector(".s"),tb=box.querySelector(".tb");
+  const upd=()=>{
+    const x=parseFloat(v.value),k=+s.value;
+    if(!(x>=0)){tb.innerHTML="";return}
+    const mol=u.value==="mol"?x:(r.M[k]?x/r.M[k]:NaN);
+    tb.innerHTML=r.names.map((f,j)=>{
+      const m=mol*r.co[j]/r.co[k];
+      return`<tr><td>${pretty(f)}</td><td>${fmt(m)}</td><td>${r.M[j]&&isFinite(m)?fmt(m*r.M[j]):"—"}</td></tr>`}).join("");
+  };
+  [v,u,s].forEach(e=>e.addEventListener("input",upd));upd();
+}
+
+function run(){
+  const out=$("out"),lines=$("ta").value.split("\n").map(s=>s.trim()).filter(Boolean);
+  out.innerHTML="";
+  if(!lines.length){out.innerHTML='<p class="mute">Type or scan an equation to see it balanced.</p>';return}
+  lines.forEach(line=>{
+    const d=document.createElement("section");d.className="card";
+    try{const r=balance(line);d.innerHTML=render(r);wireCalc(d,r)}
+    catch(e){d.innerHTML=`<p class="err">${esc(e.message)}</p><p class="mute">${esc(line)}</p>`}
+    out.appendChild(d);
+  });
+}
+
+$("go").onclick=run;
+$("chips").innerHTML=EXAMPLES.map((e,i)=>`<button class="chip" type="button" data-i="${i}">${pretty(e.replace("->","→"))}</button>`).join("");
+$("chips").onclick=e=>{const b=e.target.closest(".chip");if(b){$("ta").value=EXAMPLES[+b.dataset.i];run()}};
+
+/* Scan: Claude reads the text from the photo, the balancing itself runs in this page. */
+let sample=null;
+const PROMPT='Read the chemical equation(s) in this image. Reply with JSON only: {"equations":["..."]}. One string per equation, in plain text: write subscripts as normal digits (H2O, Ca(OH)2), use -> for the arrow and + between substances, keep coefficients as written, and leave out state symbols. Do not balance or correct anything. If the image has no chemical equation, return {"equations":[]}.';
+const MSG={not_granted:"Scanning needs permission to use Claude. Allow it and try again.",rate_limited:"Too many scans. Wait a moment and try again.",image_rejected:"That image couldn’t be read. Try a different photo."};
+const status=t=>{$("status").textContent=t};
+
+/* Fallback when the page runs outside Claude: in-browser OCR (Tesseract.js, loaded on first scan). */
+async function ocr(file){
+  if(!window.Tesseract){
+    await new Promise((ok,no)=>{const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";s.onload=ok;s.onerror=()=>no(new Error("offline"));document.head.appendChild(s)});
+  }
+  const {data}=await Tesseract.recognize(file,"eng",{logger:m=>{if(m.status==="recognizing text")status("Reading… "+Math.round(m.progress*100)+"%")}});
+  const ls=data.text.split("\n").map(s=>s.trim()).filter(Boolean);
+  const eq=ls.filter(s=>/[→⟶>=—–]|->/.test(s));
+  return eq.length?eq:ls;
+}
+
+async function scan(file){
+  if(!file)return;
+  const fr=new FileReader();
+  fr.onload=()=>{$("prev").src=fr.result;$("prev").hidden=false};
+  fr.readAsDataURL(file);
+  status("Reading the equation…");
+  try{
+    let eqs;if(sample){const data=await sample.json(PROMPT,{images:[file],modelTier:"default"});eqs=(data&&data.equations||[]).filter(Boolean)}else eqs=await ocr(file);
+    
+    if(!eqs.length){status("No equation found. Try a closer, well-lit photo.");return}
+    $("ta").value=eqs.join("\n");
+    status("Found "+eqs.length+(eqs.length>1?" equations":" equation")+". Check the text below and edit if anything looks off.");
+    run();
+  }catch(e){status(MSG[e&&e.code]||"Scan failed. Try again, or type the equation.")}
+}
+
+["cam","up"].forEach(k=>{
+  $(k+"Btn").onclick=()=>$(k+"In").click();
+  $(k+"In").onchange=e=>{scan(e.target.files[0]);e.target.value=""};
+});
+
+(async()=>{
+  let ok=false;
+  try{
+    if(window.claude){
+      sample=await claude.use("sample");
+      if(sample){const l=await sample.limits();ok=!!(l&&l.images)}
+    }
+  }catch(e){}
+  if(!ok){sample=null;$("note").textContent="Scanning here uses in-browser text recognition. It needs internet the first time, and handwriting may need a quick fix in the text box."}
+  $("scanBox").hidden=false;$("note").hidden=ok;
+})();
+run();
+</script>
+</body>
+</html>
